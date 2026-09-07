@@ -1,83 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { resumeData } from '../data/resumeData';
 
 export default function TerminalSection() {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([
-    { cmd: 'welcome', res: 'Type "help" to see available commands.' }
+    { cmd: 'who am I ?', res: `${resumeData.name} - ${resumeData.role}` },
+    { cmd: 'help', res: 'Available commands: about, skills, projects, metrics, contact, clear' }
   ]);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Auto-scroll to latest output when command is entered
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history]);
 
   const handleCommand = (e) => {
     if (e.key === 'Enter') {
-      const cleanCmd = input.trim().toLowerCase();
+      const trimmed = input.trim();
+      const cleanCmd = trimmed.toLowerCase();
       let res = '';
+
+      if (!trimmed) return;
 
       switch (cleanCmd) {
         case 'help':
-          res = 'Available commands: about, skills, projects, metrics, contact, clear';
+          res = 'Commands: about, skills, projects, metrics, contact, clear, sudo';
           break;
         case 'about':
-          res = `${resumeData.name} - ${resumeData.role}. ${resumeData.tagline}`;
+          res = `${resumeData.name} | ${resumeData.tagline}`;
           break;
         case 'skills':
           res = Object.entries(resumeData.skills)
-            .map(([cat, sk]) => `${cat}: ${sk.join(', ')}`)
-            .join(' | ');
+            .map(([cat, sk]) => `[${cat}]: ${sk.join(', ')}`)
+            .join('\n');
           break;
         case 'projects':
-          res = resumeData.projects.map(p => p.title).join(', ');
+          res = resumeData.projects
+            .map(p => `• ${p.title} (${p.subtitle}) -> Stack: ${p.tech.join(', ')}`)
+            .join('\n');
           break;
         case 'metrics':
-          res = resumeData.metrics.map(m => `${m.label}: ${m.value}`).join(' | ');
+          res = resumeData.metrics
+            .map(m => `• ${m.label}: ${m.value}`)
+            .join('\n');
           break;
         case 'contact':
           res = `Email: ${resumeData.contacts.email} | Phone: ${resumeData.contacts.phone}`;
+          break;
+        case 'sudo':
+          res = 'Permission denied: Recruiter privileges only.';
           break;
         case 'clear':
           setHistory([]);
           setInput('');
           return;
         default:
-          res = `Command not recognized: "${cleanCmd}". Type "help" for a list of commands.`;
+          res = `Command not recognized: "${trimmed}". Type "help" for valid commands.`;
       }
 
-      setHistory(prev => [...prev, { cmd: input, res }]);
+      setHistory(prev => [...prev, { cmd: trimmed, res }]);
       setInput('');
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto my-12 p-4 font-mono text-sm bg-[#090D1A] border border-mutedBorder rounded-xl shadow-crimson-glow">
-      <div className="flex items-center gap-2 pb-3 border-b border-white/10 text-xs text-gray-400">
-        <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-        <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-        <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-        <span className="ml-2">akbar@portfolio:~ (bash)</span>
+    <div 
+      onClick={() => inputRef.current?.focus()}
+      className="w-full max-w-4xl mx-auto my-8 p-5 font-mono text-sm bg-[#090D1A] border border-mutedBorder rounded-xl shadow-crimson-glow cursor-text"
+    >
+      {/* Terminal Title Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-white/10 text-xs text-gray-400 select-none">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+          <span className="ml-2 text-gray-300 font-semibold">akbar@portfolio:~ (bash)</span>
+        </div>
+        <span className="text-[11px] text-gray-500 hidden sm:inline">Click anywhere inside to type</span>
       </div>
 
-      <div className="pt-4 space-y-3 max-h-64 overflow-y-auto">
+      {/* Terminal Output Log */}
+      <div className="pt-4 space-y-3 max-h-72 overflow-y-auto pr-2">
         {history.map((item, idx) => (
-          <div key={idx}>
+          <div key={idx} className="space-y-1">
             <div className="flex items-center gap-2 text-primaryCrimson">
               <span>➜</span>
-              <span className="text-gray-300">~</span>
+              <span className="text-gray-400 font-sans text-xs">~</span>
               <span className="text-white font-semibold">{item.cmd}</span>
             </div>
-            <p className="text-gray-400 pl-4 mt-1 leading-relaxed">{item.res}</p>
+            <pre className="text-gray-300 pl-4 whitespace-pre-wrap font-mono text-xs leading-relaxed">
+              {item.res}
+            </pre>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-center gap-2 mt-4 pt-2 border-t border-white/5">
+      {/* Active Command Input Line */}
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10">
         <span className="text-primaryCrimson font-bold">➜</span>
-        <span className="text-gray-400">~</span>
+        <span className="text-gray-400 font-sans text-xs">~</span>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleCommand}
-          placeholder='Type a command (e.g. "help")...'
-          className="w-full bg-transparent text-white outline-none placeholder-gray-600"
+          placeholder='type "projects", "skills", or "help" and press enter...'
+          className="w-full bg-transparent text-white focus:outline-none placeholder-gray-600 font-mono text-xs caret-primaryCrimson"
         />
       </div>
     </div>
