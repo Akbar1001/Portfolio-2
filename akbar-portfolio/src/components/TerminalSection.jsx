@@ -4,15 +4,22 @@ import { resumeData } from '../data/resumeData';
 export default function TerminalSection() {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([
-    { cmd: 'who am I ?', res: `${resumeData.name} - ${resumeData.role}` },
+    { cmd: 'whoami', res: `${resumeData.name} - ${resumeData.role}` },
     { cmd: 'help', res: 'Available commands: about, skills, projects, metrics, contact, clear' }
   ]);
-  const bottomRef = useRef(null);
+  const terminalBoxRef = useRef(null);
   const inputRef = useRef(null);
+  const isFirstRender = useRef(true);
 
-  // Auto-scroll to latest output when command is entered
+  // Auto-scroll ONLY the terminal container, and only AFTER the user enters a command
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (terminalBoxRef.current) {
+      terminalBoxRef.current.scrollTop = terminalBoxRef.current.scrollHeight;
+    }
   }, [history]);
 
   const handleCommand = (e) => {
@@ -80,8 +87,8 @@ export default function TerminalSection() {
         <span className="text-[11px] text-gray-500 hidden sm:inline">Click anywhere inside to type</span>
       </div>
 
-      {/* Terminal Output Log */}
-      <div className="pt-4 space-y-3 max-h-72 overflow-y-auto pr-2">
+      {/* Terminal Output Log Container */}
+      <div ref={terminalBoxRef} className="pt-4 space-y-3 max-h-72 overflow-y-auto pr-2">
         {history.map((item, idx) => (
           <div key={idx} className="space-y-1">
             <div className="flex items-center gap-2 text-primaryCrimson">
@@ -94,10 +101,9 @@ export default function TerminalSection() {
             </pre>
           </div>
         ))}
-        <div ref={bottomRef} />
       </div>
 
-      {/* Active Command Input Line */}
+      {/* Command Input Line */}
       <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10">
         <span className="text-primaryCrimson font-bold">➜</span>
         <span className="text-gray-400 font-sans text-xs">~</span>
